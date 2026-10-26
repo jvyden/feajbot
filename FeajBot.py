@@ -1,6 +1,6 @@
 import asyncio
-from datetime import datetime, timedelta
 import random
+from datetime import datetime, timedelta
 from typing import override
 
 from maubot import Plugin
@@ -23,9 +23,11 @@ class FeajBot(Plugin):
             raise TypeError("no config found");
         self.config.load_and_update();
         self.loop_task = asyncio.create_task(self.bot_loop())
+        await self.meow();
 
+    @override
     async def stop(self) -> None:
-        self.loop_task.cancel()
+        _ = self.loop_task.cancel()
 
     @override
     @classmethod
@@ -36,7 +38,7 @@ class FeajBot(Plugin):
         self.log.info("meowing");
         if not self.config:
             raise TypeError("no config found");
-        roomId: str | None = self.config.get("room_id", None);
+        roomId: str | None = self.config.get("room_id", None);  # pyright: ignore[reportAny]
 
         if not roomId:
             self.log.warning("could not find room id");
@@ -67,6 +69,7 @@ class FeajBot(Plugin):
             while True:
                 now = datetime.now()
                 minutes = random.randrange(1, 120);
+                self.log.info(f"will meow in {minutes} minutes next")
                 next_minute = (now + timedelta(minutes=minutes)).replace(second=0, microsecond=0)
                 await asyncio.sleep((next_minute - now).total_seconds())
                 await self.meow();

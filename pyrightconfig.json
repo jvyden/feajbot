@@ -1,3 +1,5 @@
 {
-	"reportPrivateImportUsage": false
+	"reportPrivateImportUsage": false,
+	"reportUnknownMemberType": false,
+	"reportMissingTypeArgument": false
 }

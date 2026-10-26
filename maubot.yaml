@@ -1,7 +1,7 @@
 maubot: 0.6.0
 id: xyz.jvyden.feajbot
 version: 1.0.0
-license: MIT
+license: WTFPL
 modules:
   - FeajBot
 main_class: FeajBot

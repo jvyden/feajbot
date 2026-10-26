@@ -3,7 +3,7 @@ id: xyz.jvyden.feajbot
 version: 1.0.0
 license: MIT
 modules:
-  - feajbot
+  - FeajBot
 main_class: FeajBot
 config: true
 extra_files:

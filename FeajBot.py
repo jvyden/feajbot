@@ -1,10 +1,10 @@
 import asyncio
 import random
-from datetime import datetime, timedelta
 from typing import override
 
-from maubot import Plugin
-from mautrix.types import TextMessageEventContent
+from maubot import MessageEvent, Plugin
+from maubot.handlers import command, event
+from mautrix.types import EventType, TextMessageEventContent
 from mautrix.types.event.message import MessageType
 from mautrix.util.config import BaseProxyConfig, ConfigUpdateHelper
 
@@ -16,6 +16,7 @@ class Config(BaseProxyConfig):
 
 class FeajBot(Plugin):
     loop_task: asyncio.Future
+    mins_remaining: int = 5;
 
     @override
     async def start(self) -> None:
@@ -23,7 +24,7 @@ class FeajBot(Plugin):
             raise TypeError("no config found");
         self.config.load_and_update();
         self.loop_task = asyncio.create_task(self.bot_loop())
-        await self.meow();
+        # await self.meow();
 
     @override
     async def stop(self) -> None:
@@ -34,26 +35,30 @@ class FeajBot(Plugin):
     def get_config_class(cls) -> type[BaseProxyConfig]:
         return Config
 
-    async def meow(self) -> None:
-        self.log.info("meowing");
+    def get_room_id(self) -> str:
         if not self.config:
             raise TypeError("no config found");
         roomId: str | None = self.config.get("room_id", None);  # pyright: ignore[reportAny]
 
         if not roomId:
-            self.log.warning("could not find room id");
-            return;
+            raise KeyError("could not find room id");
+
+        return roomId;
+
+
+    async def meow(self) -> None:
+        self.log.info("meowing");
+        room_id: str = self.get_room_id();
 
         rooms = await self.client.get_joined_rooms();
         room = None;
 
-        for innerRoom in rooms:
-            if innerRoom != roomId:
+        for inner_room in rooms:
+            if inner_room != room_id:
                 continue;
 
-            room = innerRoom;
+            room = inner_room;
             break;
-
 
         if not room:
             self.log.warning("could not find room");
@@ -67,13 +72,32 @@ class FeajBot(Plugin):
         try:
             self.log.debug("Bot loop started")
             while True:
-                now = datetime.now()
-                minutes = random.randrange(1, 120);
-                self.log.info(f"will meow in {minutes} minutes next")
-                next_minute = (now + timedelta(minutes=minutes)).replace(second=0, microsecond=0)
-                await asyncio.sleep((next_minute - now).total_seconds())
-                await self.meow();
+                await asyncio.sleep(60);
+                self.mins_remaining -= 1;
+
+                if self.mins_remaining <= 0:
+                    minutes = random.randrange(10, 300);
+                    self.log.info(f"will meow in {minutes} minutes next")
+                    self.mins_remaining = minutes;
+                    await self.meow();
         except asyncio.CancelledError:
             self.log.debug("Bot loop stopped")
         except Exception:
             self.log.exception("Error in bot loop")
+
+    @command.passive("dean", case_insensitive=True)  # pyright: ignore[reportUntypedFunctionDecorator]
+    async def dean_command(self, evt: MessageEvent, match: tuple[str]) -> None:
+        _ = evt;
+        _ = match;
+        self.log.info("passive dean");
+        await self.meow();
+
+    @event.on(EventType.ROOM_MESSAGE)  # pyright: ignore[reportArgumentType, reportUntypedFunctionDecorator]
+    async def handle_message(self, evt: MessageEvent) -> None:
+        room_id: str = self.get_room_id();
+        if evt.room_id != room_id:
+            return;
+
+        minutes = random.randrange(1, 2);
+        self.mins_remaining -= minutes;
+        self.log.info(f"lowering mins by {minutes}, now at {self.mins_remaining}");
